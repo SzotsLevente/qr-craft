@@ -38,11 +38,12 @@ object QrContentDetector {
         return when (barcode.valueType) {
             Barcode.TYPE_URL -> {
                 val url = barcode.url
+                val cleanUrl = cleanUrl(url?.url ?: rawValue)
                 QrContent(
                     type = QrContentType.Link,
                     value = rawValue,
                     formattedData = mapOf(
-                        "URL" to (url?.url ?: rawValue),
+                        "URL" to cleanUrl,
                         "Title" to (url?.title ?: "")
                     ).filter { it.value.isNotEmpty() }
                 )
@@ -80,8 +81,7 @@ object QrContentDetector {
                     value = rawValue,
                     formattedData = if (geoPoint != null) {
                         mapOf(
-                            "Latitude" to geoPoint.lat.toString(),
-                            "Longitude" to geoPoint.lng.toString()
+                            "" to "${geoPoint.lat}, ${geoPoint.lng}"
                         )
                     } else emptyMap()
                 )
@@ -147,7 +147,11 @@ object QrContentDetector {
             trimmedText.startsWith("http://", ignoreCase = true) ||
                     trimmedText.startsWith("https://", ignoreCase = true) ||
                     trimmedText.startsWith("www.", ignoreCase = true) -> {
-                QrContent(QrContentType.Link, trimmedText)
+                QrContent(
+                    QrContentType.Link, trimmedText, formattedData = mapOf(
+                        "URL" to cleanUrl(trimmedText)
+                    )
+                )
             }
 
             // Contact detection (vCard)
@@ -175,7 +179,8 @@ object QrContentDetector {
 
             // GeoLocation detection
             isGeoLocation(trimmedText) -> {
-                QrContent(QrContentType.GeoLocation, trimmedText)
+                val geoData = parseGeoLocationData(trimmedText)
+                QrContent(QrContentType.GeoLocation, trimmedText, formattedData = geoData)
             }
 
             // Default to text
@@ -352,6 +357,46 @@ object QrContentDetector {
             Barcode.WiFi.TYPE_WPA -> "WPA2"
             Barcode.WiFi.TYPE_WEP -> "WEP"
             else -> "Unknown"
+        }
+    }
+
+    private fun parseGeoLocationData(geoLocation: String): Map<String, String> {
+        val geoData = mutableMapOf<String, String>()
+
+        // Remove geo: prefix if present
+        val cleanLocation = geoLocation.removePrefix("geo:").removePrefix("GEO:").trim()
+
+        // Extract coordinates from various patterns
+        val coordinateRegex = Regex("(-?\\d+\\.?\\d*)\\s*,\\s*(-?\\d+\\.?\\d*)")
+        val match = coordinateRegex.find(cleanLocation)
+
+        if (match != null) {
+            val (latitude, longitude) = match.destructured
+            geoData[""] = "${latitude.trim()}, ${longitude.trim()}"
+        }
+
+        return geoData
+    }
+
+    private fun cleanUrl(url: String): String {
+        val trimmedUrl = url.trim()
+        return when {
+            trimmedUrl.startsWith("http://https://") || trimmedUrl.startsWith("http://http://") -> {
+                // Fix malformed URLs with double protocols
+                trimmedUrl.removePrefix("http://")
+            }
+
+            trimmedUrl.startsWith("https://") || trimmedUrl.startsWith("http://") -> {
+                trimmedUrl
+            }
+
+            trimmedUrl.startsWith("www.") -> {
+                "https://$trimmedUrl"
+            }
+
+            else -> {
+                trimmedUrl
+            }
         }
     }
 }

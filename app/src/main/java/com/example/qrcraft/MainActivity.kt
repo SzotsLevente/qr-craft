@@ -6,6 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -31,7 +32,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun QrCraftApp() {
     val navController = rememberNavController()
-    var scannedQrData by remember { mutableStateOf("") }
+    var scannedQrData by rememberSaveable { mutableStateOf("") }
 
     NavHost(
         navController = navController,

@@ -5,24 +5,48 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Color.BLACK
 import android.graphics.Color.WHITE
-import android.util.Log
+import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Share
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -35,13 +59,15 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.qrcraft.data.QrContentDetector
 import com.example.qrcraft.data.QrContentType
-import com.example.qrcraft.ui.theme.*
-import com.google.mlkit.vision.barcode.common.Barcode
+import com.example.qrcraft.ui.theme.OnOverlay
+import com.example.qrcraft.ui.theme.OnSurface
+import com.example.qrcraft.ui.theme.OnSurfaceAlt
+import com.example.qrcraft.ui.theme.Surface
+import com.example.qrcraft.ui.theme.SurfaceHigher
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.EncodeHintType
 import com.google.zxing.qrcode.QRCodeWriter
 import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel
-import androidx.core.graphics.set
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -97,12 +123,20 @@ fun ScanResultScreen(
             )
         )
 
-        // Content
-        Box(modifier = Modifier.fillMaxSize()) {
-            // Content Card - positioned lower
+        // Scrollable content
+        val scrollState = rememberScrollState()
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(scrollState)
+                .padding(bottom = 32.dp)
+        ) {
+            // Content Card
             Card(
                 modifier = Modifier
                     .width(480.dp)
+                    .align(Alignment.TopCenter)
                     .padding(horizontal = 16.dp)
                     .padding(top = 140.dp),
                 elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
@@ -118,27 +152,17 @@ fun ScanResultScreen(
                     ),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .background(
-                                color = Surface,
-                                shape = RoundedCornerShape(8.dp)
-                            )
-                            .padding(horizontal = 16.dp, vertical = 8.dp)
-                    ) {
-                        Text(
-                            text = qrContent.displayName,
-                            style = MaterialTheme.typography.headlineMedium,
-                            color = OnSurface,
-                            textAlign = TextAlign.Center
-                        )
-                    }
+                    Text(
+                        text = qrContent.displayName,
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = OnSurface,
+                        textAlign = TextAlign.Center
+                    )
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Content Details
                     if (qrContent.formattedData.isNotEmpty()) {
-                        FormattedContentDisplay(qrContent.formattedData)
+                        FormattedContentDisplay(qrContent.formattedData, qrContent.type)
                     } else {
                         ExpandableText(
                             text = qrCodeData,
@@ -151,26 +175,17 @@ fun ScanResultScreen(
 
                     Spacer(modifier = Modifier.height(40.dp))
 
-                    // Action Buttons
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         Button(
-                            onClick = {
-                                shareContent(context, qrCodeData)
-                            },
+                            onClick = { shareContent(context, qrCodeData) },
                             modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = SurfaceHigher,
-                            ),
+                            colors = ButtonDefaults.buttonColors(containerColor = SurfaceHigher)
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Share,
-                                contentDescription = "Share",
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
+                            Icon(Icons.Default.Share, null, Modifier.size(16.dp))
+                            Spacer(Modifier.width(8.dp))
                             Text(
                                 "Share",
                                 color = OnSurface,
@@ -188,9 +203,7 @@ fun ScanResultScreen(
                                 ).show()
                             },
                             modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = SurfaceHigher,
-                            ),
+                            colors = ButtonDefaults.buttonColors(containerColor = SurfaceHigher)
                         ) {
                             Text(
                                 "Copy",
@@ -202,6 +215,7 @@ fun ScanResultScreen(
                 }
             }
 
+            // QR Code positioned above card
             qrCodeBitmap?.let { bitmap ->
                 Box(
                     modifier = Modifier
@@ -218,7 +232,8 @@ fun ScanResultScreen(
                     Image(
                         bitmap = bitmap.asImageBitmap(),
                         contentDescription = "QR Code",
-                        modifier = Modifier.fillMaxSize()
+                        modifier = Modifier
+                            .fillMaxSize()
                             .clip(RoundedCornerShape(16.dp))
                     )
                 }
@@ -228,19 +243,34 @@ fun ScanResultScreen(
 }
 
 @Composable
-private fun FormattedContentDisplay(data: Map<String, String>) {
+private fun FormattedContentDisplay(data: Map<String, String>, contentType: QrContentType) {
+    val context = LocalContext.current
+
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         data.forEach { (key, value) ->
             if (value.isNotEmpty()) {
-                Text(
-                    text = "$key: $value",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = OnSurface,
-                    textAlign = TextAlign.Center
-                )
+                if (contentType == QrContentType.Link) {
+                    Text(
+                        text = "$value",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = OnSurface,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.clickable {
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(value.trim()))
+                            context.startActivity(intent)
+                        }
+                    )
+                } else {
+                    Text(
+                        text = if (key.isEmpty()) value else "$key: $value",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = OnSurface,
+                        textAlign = TextAlign.Center
+                    )
+                }
             }
         }
     }
@@ -303,7 +333,7 @@ private fun generateQrCodeBitmap(data: String, size: Int = 400): Bitmap? {
 
         for (x in 0 until width) {
             for (y in 0 until height) {
-                bitmap[x, y] = if (bitMatrix[x, y]) BLACK else WHITE
+                bitmap.setPixel(x, y, if (bitMatrix[x, y]) BLACK else WHITE)
             }
         }
         bitmap
