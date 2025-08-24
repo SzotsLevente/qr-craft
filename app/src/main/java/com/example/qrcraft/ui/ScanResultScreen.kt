@@ -101,13 +101,17 @@ fun ScanResultScreen(
         // Top Bar
         TopAppBar(
             title = {
-                Text(
-                    text = "Scan Result",
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = OnOverlay,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth()
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = "Scan Result",
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = OnOverlay,
+                        textAlign = TextAlign.Center
+                    )
+                }
             },
             navigationIcon = {
                 IconButton(onClick = onBackClick) {
@@ -117,6 +121,10 @@ fun ScanResultScreen(
                         tint = OnOverlay
                     )
                 }
+            },
+            actions = {
+                // Empty spacer to balance the navigation icon and center the title
+                Spacer(modifier = Modifier.width(48.dp)) // Same width as IconButton
             },
             colors = TopAppBarDefaults.topAppBarColors(
                 containerColor = OnSurface
@@ -169,7 +177,7 @@ fun ScanResultScreen(
                             maxLines = 6,
                             style = MaterialTheme.typography.bodyLarge,
                             color = OnSurface,
-                            textAlign = TextAlign.Center
+                            textAlign = if (qrContent.type == QrContentType.Text) TextAlign.Start else TextAlign.Center
                         )
                     }
 
@@ -245,9 +253,12 @@ fun ScanResultScreen(
 @Composable
 private fun FormattedContentDisplay(data: Map<String, String>, contentType: QrContentType) {
     val context = LocalContext.current
+    val textAlign = if (contentType == QrContentType.Text) TextAlign.Start else TextAlign.Center
+    val horizontalAlignment =
+        if (contentType == QrContentType.Text) Alignment.Start else Alignment.CenterHorizontally
 
     Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
+        horizontalAlignment = horizontalAlignment,
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         data.forEach { (key, value) ->
@@ -257,7 +268,7 @@ private fun FormattedContentDisplay(data: Map<String, String>, contentType: QrCo
                         text = "$value",
                         style = MaterialTheme.typography.bodyLarge,
                         color = OnSurface,
-                        textAlign = TextAlign.Center,
+                        textAlign = textAlign,
                         modifier = Modifier.clickable {
                             val intent = Intent(Intent.ACTION_VIEW, Uri.parse(value.trim()))
                             context.startActivity(intent)
@@ -268,7 +279,7 @@ private fun FormattedContentDisplay(data: Map<String, String>, contentType: QrCo
                         text = if (key.isEmpty()) value else "$key: $value",
                         style = MaterialTheme.typography.bodyLarge,
                         color = OnSurface,
-                        textAlign = TextAlign.Center
+                        textAlign = textAlign
                     )
                 }
             }

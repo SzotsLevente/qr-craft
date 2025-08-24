@@ -1,7 +1,6 @@
 package com.example.qrcraft.ui
 
 import android.Manifest
-import android.R
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -16,6 +15,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -63,7 +65,7 @@ fun ScannerScreen(
             val qrCode = pendingQrCode!!
             pendingQrCode = null
             isLoading = true
-            delay(800) // Stable delay
+            delay(800)
             onQrCodeScanned(qrCode)
             isLoading = false
         }
@@ -90,74 +92,83 @@ fun ScannerScreen(
         }
     }
 
-    Box(modifier = modifier
-        .fillMaxSize()
-        .background(Color(0xFF283037))
-    ) {
-        // Overlay background for areas outside camera preview
+    Box(modifier = modifier.fillMaxSize()) {
+        // Camera preview takes the full screen
+        CameraPreview(
+            onQrCodeDetected = { barcode: Barcode ->
+                // Prevent multiple detections while processing
+                if (!isLoading && barcode.rawValue != null) {
+                    if (cameraPermissionState.status == PermissionStatus.Granted) {
+                        // Permission granted, process QR code with loading
+                        isLoading = true
+                        CoroutineScope(Dispatchers.Main).launch {
+                            delay(800) // Stable delay
+                            onQrCodeScanned(barcode.rawValue!!)
+                            isLoading = false
+                        }
+                    } else {
+                        // Permission not granted, store QR code and request permission
+                        pendingQrCode = barcode.rawValue
+                        showPermissionDialog = true
+                    }
+                }
+            },
+            modifier = Modifier.fillMaxSize()
+        )
+
+        // Semi-transparent black overlay covering the ENTIRE screen (50% opacity)
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Overlay)
+                .background(Color.Black.copy(alpha = 0.5f))
         )
 
-        // Show camera preview or loading
+        // Transparent cutout for the camera square using Canvas
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val centerX = size.width / 2f
+            val centerY = size.height / 2f
+            val squareSize = 250.dp.toPx()
+            val halfSquare = squareSize / 2f
+
+            // Cut out the camera square area (make it transparent)
+            drawRect(
+                color = Color.Transparent,
+                topLeft = Offset(
+                    centerX - halfSquare,
+                    centerY - halfSquare
+                ),
+                size = Size(squareSize, squareSize),
+                blendMode = BlendMode.Clear
+            )
+        }
+
+        // Hint text positioned above the camera square
+        Text(
+            text = "Point your camera at a QR code",
+            modifier = Modifier
+                .align(Alignment.Center)
+                .offset(y = (-150).dp), // Position above the 250dp square
+            color = Color.White,
+            style = MaterialTheme.typography.bodyLarge,
+            textAlign = TextAlign.Center
+        )
+
+        // Scanning frame overlay
         Box(
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .align(Alignment.Center)
+                .size(250.dp),
+            contentAlignment = Alignment.Center
         ) {
-            // Hint text at the top
-            Text(
-                text = "Point your camera at a QR code",
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .padding(top = 100.dp),
-                color = Color.White,
-                style = MaterialTheme.typography.bodyLarge,
-                textAlign = TextAlign.Center
+            ScanningFrame(
+                modifier = Modifier.size(250.dp),
+                frameSize = 250.dp
             )
+        }
 
-            // Camera preview without overlay elements
-            CameraPreview(
-                onQrCodeDetected = { barcode: Barcode ->
-                    // Prevent multiple detections while processing
-                    if (!isLoading && barcode.rawValue != null) {
-                        if (cameraPermissionState.status == PermissionStatus.Granted) {
-                            // Permission granted, process QR code with loading
-                            isLoading = true
-                            CoroutineScope(Dispatchers.Main).launch {
-                                delay(800) // Stable delay
-                                onQrCodeScanned(barcode.rawValue!!)
-                                isLoading = false
-                            }
-                        } else {
-                            // Permission not granted, store QR code and request permission
-                            pendingQrCode = barcode.rawValue
-                            showPermissionDialog = true
-                        }
-                    }
-                },
-                modifier = Modifier
-                    .align(Alignment.Center)
-                    .size(250.dp)
-            )
-
-            // Scanning frame overlay
-            Box(
-                modifier = Modifier
-                    .align(Alignment.Center)
-                    .size(250.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                ScanningFrame(
-                    modifier = Modifier.size(250.dp),
-                    frameSize = 250.dp
-                )
-            }
-
-            // Loading overlay - positioned over the frame
-            if (isLoading) {
-                LoadingOverlay()
-            }
+        // Loading overlay - positioned over the frame
+        if (isLoading) {
+            LoadingOverlay()
         }
 
         // Position snackbar higher with more padding from bottom
