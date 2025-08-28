@@ -59,6 +59,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.qrcraft.data.QrContentDetector
 import com.example.qrcraft.data.QrContentType
+import com.example.qrcraft.ui.theme.Link
+import com.example.qrcraft.ui.theme.LinkBG
 import com.example.qrcraft.ui.theme.OnOverlay
 import com.example.qrcraft.ui.theme.OnSurface
 import com.example.qrcraft.ui.theme.OnSurfaceAlt
@@ -74,6 +76,7 @@ import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel
 fun ScanResultScreen(
     qrCodeData: String,
     onBackClick: () -> Unit,
+    title: String = "Scan Result",
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -106,7 +109,7 @@ fun ScanResultScreen(
                     horizontalArrangement = Arrangement.Center
                 ) {
                     Text(
-                        text = "Scan Result",
+                        text = title,
                         style = MaterialTheme.typography.headlineMedium,
                         color = OnOverlay,
                         textAlign = TextAlign.Center
@@ -123,8 +126,7 @@ fun ScanResultScreen(
                 }
             },
             actions = {
-                // Empty spacer to balance the navigation icon and center the title
-                Spacer(modifier = Modifier.width(48.dp)) // Same width as IconButton
+                Spacer(modifier = Modifier.width(48.dp))
             },
             colors = TopAppBarDefaults.topAppBarColors(
                 containerColor = OnSurface
@@ -269,14 +271,14 @@ private fun FormattedContentDisplay(data: Map<String, String>, contentType: QrCo
                         style = MaterialTheme.typography.bodyLarge,
                         color = OnSurface,
                         textAlign = textAlign,
-                        modifier = Modifier.clickable {
+                        modifier = Modifier.background(LinkBG, shape = RoundedCornerShape(32.dp)).padding(4.dp).clickable {
                             val intent = Intent(Intent.ACTION_VIEW, Uri.parse(value.trim()))
                             context.startActivity(intent)
                         }
                     )
                 } else {
                     Text(
-                        text = if (key.isEmpty()) value else "$key: $value",
+                        text = if (key.isEmpty() || contentType == QrContentType.Contact) value else "$key: $value",
                         style = MaterialTheme.typography.bodyLarge,
                         color = OnSurface,
                         textAlign = textAlign
